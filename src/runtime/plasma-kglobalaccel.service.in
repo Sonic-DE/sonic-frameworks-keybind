@@ -1,0 +1,8 @@
+[Unit]
+Description=KDE Global Shortcuts Server
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=@KDE_INSTALL_FULL_BINDIR@/kglobalaccel5
+BusName=org.kde.kglobalaccel
+Slice=background.slice
