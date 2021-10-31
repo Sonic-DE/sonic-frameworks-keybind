@@ -71,6 +71,9 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
 {
     // TODO KF6 use ApplicationLauncherJob to start processes when it's available in a framework that we depend on
 
+    // The desktop file's content may have changed by now
+    m_desktopFile->reparseConfiguration();
+
     // DBusActivatatable spec as per https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#dbus
     if (m_desktopFile->desktopGroup().readEntry("DBusActivatable", false)) {
         QString method;
