@@ -23,6 +23,7 @@
 
 #include <QDBusConnection>
 #include <QKeySequence>
+#include <QPluginLoader>
 
 static bool checkPlatform(const QJsonObject &metadata, const QString &platformName)
 {
