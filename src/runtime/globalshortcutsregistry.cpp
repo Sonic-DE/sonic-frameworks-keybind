@@ -298,10 +298,25 @@ bool GlobalShortcutsRegistry::keyPressed(int keyQt)
         _manager->syncWindowingSystem();
     }
 
-    // 1st Invoke the action
+    if (m_lastShortcut && m_lastShortcut != shortcut) {
+        m_lastShortcut->context()->component()->emitGlobalShortcutReleased(*m_lastShortcut);
+    }
+
+    // Invoke the action
     shortcut->context()->component()->emitGlobalShortcutPressed(*shortcut);
+    m_lastShortcut = shortcut;
 
     return true;
+}
+
+bool GlobalShortcutsRegistry::keyReleased(int keyQt)
+{
+    Q_UNUSED(keyQt)
+    if (m_lastShortcut) {
+        m_lastShortcut->context()->component()->emitGlobalShortcutReleased(*m_lastShortcut);
+        m_lastShortcut = nullptr;
+    }
+    return false;
 }
 
 void GlobalShortcutsRegistry::loadSettings()
