@@ -65,9 +65,22 @@ protected:
     void grabKeys();
     void ungrabKeys();
 
-private:
     class Private;
     QScopedPointer<Private> d;
+};
+
+class KGLOBALACCELPRIVATE_EXPORT KGlobalAccelInterfaceV2 : public KGlobalAccelInterface
+{
+    Q_OBJECT
+public:
+    KGlobalAccelInterfaceV2(QObject *parent);
+
+protected:
+    /**
+     * called by the implementation to inform us about key releases
+     * @returns @c true if the key was handled
+     **/
+    bool keyReleased(int keyQt);
 };
 
 Q_DECLARE_INTERFACE(KGlobalAccelInterface, KGlobalAccelInterface_iid)

@@ -6,6 +6,7 @@
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
+import QtQuick 2.15
 import QtQuick.Controls 2.15
 import org.kde.kquickcontrols 2.0
 import org.kde.globalaccel 1.0
@@ -14,17 +15,23 @@ ApplicationWindow
 {
     visible: true
 
-    GlobalAction {
-        text: "Hola"
-        onTriggered: console.log("woah")
-        objectName: "org.kde.globalaccel.test.globalacceltest"
-        shortcut: sequenceItem.keySequence
-    }
+    Rectangle {
+        color: action.active ? "green" : "yellow"
+        anchors.fill: parent
 
-    KeySequenceItem
-    {
-        modifierlessAllowed: true
-        id: sequenceItem
+        GlobalAction {
+            id: action
+            text: "Hola"
+            onTriggered: console.log("woah")
+            objectName: "org.kde.globalaccel.test.globalacceltest"
+            shortcut: sequenceItem.keySequence
+        }
 
+        KeySequenceItem
+        {
+            id: sequenceItem
+            modifierlessAllowed: true
+            keySequence: "Meta+X"
+        }
     }
 }
