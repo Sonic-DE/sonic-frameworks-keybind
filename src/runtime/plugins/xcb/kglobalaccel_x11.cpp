@@ -53,7 +53,7 @@ static void calculateGrabMasks()
 //----------------------------------------------------
 
 KGlobalAccelImpl::KGlobalAccelImpl(QObject *parent)
-    : KGlobalAccelInterface(parent)
+    : KGlobalAccelInterfaceV2(parent)
     , m_keySymbols(nullptr)
     , m_xkb_first_event(0)
 {
@@ -216,6 +216,11 @@ bool KGlobalAccelImpl::nativeEventFilter(const QByteArray &eventType, void *mess
         qCDebug(KGLOBALACCELD) << "Got XKeyPress event";
 #endif
         return x11KeyPress(reinterpret_cast<xcb_key_press_event_t *>(event));
+    } else if (responseType == XCB_KEY_RELEASE) {
+#ifdef KDEDGLOBALACCEL_TRACE
+        qCDebug(KGLOBALACCELD) << "Got XKeyRelease event";
+#endif
+        return x11KeyRelease(reinterpret_cast<xcb_key_release_event_t *>(event));
     } else if (m_xkb_first_event && responseType == m_xkb_first_event) {
         const uint8_t xkbEvent = event->pad0;
         switch (xkbEvent) {
@@ -295,6 +300,36 @@ bool KGlobalAccelImpl::x11KeyPress(xcb_key_press_event_t *pEvent)
         QX11Info::setAppTime(pEvent->time);
     }
     return keyPressed(keyQt);
+}
+
+bool KGlobalAccelImpl::x11KeyRelease(xcb_key_press_event_t *pEvent)
+{
+    if (QWidget::keyboardGrabber() || QApplication::activePopupWidget()) {
+        qCWarning(KGLOBALACCELD) << "kglobalacceld should be popup and keyboard grabbing free!";
+    }
+
+    // Keyboard needs to be ungrabed after XGrabKey() activates the grab,
+    // otherwise it becomes frozen.
+    xcb_connection_t *c = QX11Info::connection();
+    xcb_void_cookie_t cookie = xcb_ungrab_keyboard_checked(c, XCB_TIME_CURRENT_TIME);
+    xcb_flush(c);
+    // xcb_flush() only makes sure that the ungrab keyboard request has been
+    // sent, but is not enough to make sure that request has been fulfilled. Use
+    // xcb_request_check() to make sure that the request has been processed.
+    xcb_request_check(c, cookie);
+
+    int keyQt;
+    if (!KKeyServer::xcbKeyPressEventToQt(pEvent, &keyQt)) {
+        qCWarning(KGLOBALACCELD) << "KKeyServer::xcbKeyPressEventToQt failed";
+        return false;
+    }
+    // qDebug() << "keyQt=" << QString::number(keyQt, 16);
+
+    // All that work for this hey... argh...
+    if (NET::timestampCompare(pEvent->time, QX11Info::appTime()) > 0) {
+        QX11Info::setAppTime(pEvent->time);
+    }
+    return keyReleased(keyQt);
 }
 
 void KGlobalAccelImpl::setEnabled(bool enable)
