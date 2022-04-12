@@ -13,6 +13,7 @@
 #include <netwm.h>
 
 #include <QDebug>
+#include <QSocketNotifier>
 
 #include <QApplication>
 #include <QWidget>
@@ -28,8 +29,10 @@
 
 // It uses "explicit" as a variable name, which is not allowed in C++
 #define explicit xcb_explicit
+#include <xcb/record.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/xcbext.h>
 #include <xcb/xkb.h>
 #undef explicit
 
@@ -59,16 +62,74 @@ KGlobalAccelImpl::KGlobalAccelImpl(QObject *parent)
 {
     Q_ASSERT(QX11Info::connection());
 
+    int events = XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
+    xcb_change_window_attributes(QX11Info::connection(), QX11Info::appRootWindow(), XCB_CW_EVENT_MASK, &events);
+
     const xcb_query_extension_reply_t *reply = xcb_get_extension_data(QX11Info::connection(), &xcb_xkb_id);
     if (reply && reply->present) {
         m_xkb_first_event = reply->first_event;
     }
+
+    // We use XRecord to get the released keys because we need a way to get notified about
+    // them without needing to hold a grab
+    // Holding a grab would be a problem for the cases when a process (looking at you KWin's
+    // toolbox) replies to a global shortcut trigger with another grab
+    m_display = XOpenDisplay(nullptr);
+    auto m_connection = xcb_connect(XDisplayString((Display *)m_display), nullptr);
+    auto m_context = xcb_generate_id(m_connection);
+    xcb_record_range_t range;
+    memset(&range, 0, sizeof(range));
+    range.device_events.first = XCB_KEY_RELEASE;
+    range.device_events.last = XCB_KEY_RELEASE;
+    xcb_record_client_spec_t cs = XCB_RECORD_CS_ALL_CLIENTS;
+    xcb_record_create_context(m_connection, m_context, 0, 1, 1, &cs, &range);
+    xcb_flush(m_connection);
+
+    auto m_cookie = xcb_record_enable_context(m_connection, m_context);
+    xcb_flush(m_connection);
+
+    auto m_notifier = new QSocketNotifier(xcb_get_file_descriptor(m_connection), QSocketNotifier::Read, this);
+    connect(m_notifier, &QSocketNotifier::activated, this, [=] {
+        xcb_generic_event_t *event;
+        while ((event = xcb_poll_for_event(m_connection))) {
+            std::free(event);
+        }
+
+        xcb_record_enable_context_reply_t *reply = nullptr;
+        xcb_generic_error_t *error = nullptr;
+        while (m_cookie.sequence && xcb_poll_for_reply(m_connection, m_cookie.sequence, (void **)&reply, &error)) {
+            // xcb_poll_for_reply may set both reply and error to null if connection has error.
+            // break if xcb_connection has error, no point to continue anyway.
+            if (xcb_connection_has_error(m_connection)) {
+                break;
+            }
+
+            if (error) {
+                std::free(error);
+                break;
+            }
+
+            if (!reply) {
+                continue;
+            }
+
+            QScopedPointer<xcb_record_enable_context_reply_t, QScopedPointerPodDeleter> data(reinterpret_cast<xcb_record_enable_context_reply_t *>(reply));
+            xcb_key_press_event_t *events = reinterpret_cast<xcb_key_press_event_t *>(xcb_record_enable_context_data(reply));
+            int nEvents = xcb_record_enable_context_data_length(reply) / sizeof(xcb_key_press_event_t);
+            for (xcb_key_press_event_t *e = events; e < events + nEvents; e++) {
+                Q_ASSERT(e->response_type == XCB_KEY_RELEASE);
+                x11KeyRelease(e);
+            }
+        }
+    });
+    m_notifier->setEnabled(true);
 
     calculateGrabMasks();
 }
 
 KGlobalAccelImpl::~KGlobalAccelImpl()
 {
+    XCloseDisplay((Display *)m_display);
     if (m_keySymbols) {
         xcb_key_symbols_free(m_keySymbols);
     }
@@ -300,18 +361,10 @@ bool KGlobalAccelImpl::x11KeyRelease(xcb_key_press_event_t *pEvent)
         qCWarning(KGLOBALACCELD) << "kglobalacceld should be popup and keyboard grabbing free!";
     }
 
-    xcb_connection_t *c = QX11Info::connection();
-    xcb_allow_events(c, XCB_ALLOW_ASYNC_KEYBOARD, pEvent->time);
-    xcb_flush(c);
-
     int keyQt;
     if (!KKeyServer::xcbKeyPressEventToQt(pEvent, &keyQt)) {
         qCWarning(KGLOBALACCELD) << "KKeyServer::xcbKeyPressEventToQt failed";
         return false;
-    }
-
-    if (NET::timestampCompare(pEvent->time, QX11Info::appTime()) > 0) {
-        QX11Info::setAppTime(pEvent->time);
     }
     return keyReleased(keyQt);
 }

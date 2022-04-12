@@ -72,6 +72,7 @@ private:
 
     xcb_key_symbols_t *m_keySymbols;
     uint8_t m_xkb_first_event;
+    void *m_display;
 };
 
 #endif // _KGLOBALACCEL_X11_H
