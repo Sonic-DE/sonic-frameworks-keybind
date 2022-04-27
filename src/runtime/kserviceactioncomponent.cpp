@@ -116,12 +116,7 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
 void KServiceActionComponent::loadFromService()
 {
     auto registerGroupShortcut = [this](const KConfigGroup &group) {
-        QString shortcutString;
-        QStringList shortcuts = group.readEntry(QStringLiteral("X-KDE-Shortcuts"), QString()).split(QChar(','));
-        if (!shortcuts.isEmpty()) {
-            shortcutString = shortcuts.join(QChar('\t'));
-        }
-
+        const QString shortcutString = group.readEntry(QStringLiteral("X-KDE-Shortcuts"), QString()).replace(QLatin1Char(','), QLatin1Char('\t'));
         GlobalShortcut *shortcut =
             registerShortcut(QStringLiteral("_launch"), group.readEntry(QStringLiteral("Name"), QString()), shortcutString, shortcutString);
         shortcut->setIsPresent(true);
