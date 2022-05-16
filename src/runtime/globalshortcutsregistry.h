@@ -108,6 +108,10 @@ public:
     bool registerKey(const QKeySequence &key, GlobalShortcut *shortcut);
 
     void setAccelManager(KGlobalAccelInterface *manager);
+    KGlobalAccelInterface *accelManager() const
+    {
+        return _manager;
+    }
 
     void setDBusPath(const QDBusObjectPath &path);
 
