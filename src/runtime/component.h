@@ -68,7 +68,7 @@ public:
     QString friendlyName() const;
 
     //! Returns the currently active shortcut for key
-    GlobalShortcut *getShortcutByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const;
+    GlobalShortcut *getShortcutByKey(const QKeySequence &key, int matchType) const;
 
     //! Returns the shortcut context @p name or nullptr
     GlobalShortcutContext *shortcutContext(const QString &name);
@@ -78,7 +78,7 @@ public:
      * Returns the list of shortcuts (different context) registered with @p
      * key.
      */
-    QList<GlobalShortcut *> getShortcutsByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const;
+    QList<GlobalShortcut *> getShortcutsByKey(const QKeySequence &key, int matchType) const;
 
     //! Returns the shortcut by unique name. Only the active context is
     //! searched.

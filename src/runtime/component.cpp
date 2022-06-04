@@ -253,16 +253,16 @@ QString Component::friendlyName() const
     return _friendlyName;
 }
 
-GlobalShortcut *Component::getShortcutByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const
+GlobalShortcut *Component::getShortcutByKey(const QKeySequence &key, int matchType) const
 {
-    return _current->getShortcutByKey(key, type);
+    return _current->getShortcutByKey(key, matchType);
 }
 
-QList<GlobalShortcut *> Component::getShortcutsByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const
+QList<GlobalShortcut *> Component::getShortcutsByKey(const QKeySequence &key, int matchType) const
 {
     QList<GlobalShortcut *> rc;
     for (GlobalShortcutContext *context : std::as_const(_contexts)) {
-        GlobalShortcut *sc = context->getShortcutByKey(key, type);
+        GlobalShortcut *sc = context->getShortcutByKey(key, matchType);
         if (sc) {
             rc.append(sc);
         }

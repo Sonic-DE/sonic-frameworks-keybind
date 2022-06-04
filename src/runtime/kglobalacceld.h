@@ -134,7 +134,7 @@ public Q_SLOTS:
      *
      * @since 5.90
      */
-    Q_SCRIPTABLE QList<KGlobalShortcutInfo> globalShortcutsByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const;
+    Q_SCRIPTABLE QList<KGlobalShortcutInfo> globalShortcutsByKey(const QKeySequence &key, int matchType) const;
 
 #if KGLOBALACCEL_ENABLE_DEPRECATED_SINCE(5, 90)
     /**

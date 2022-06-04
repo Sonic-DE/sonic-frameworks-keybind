@@ -55,7 +55,7 @@ QString GlobalShortcutContext::friendlyName() const
     return _friendlyName;
 }
 
-GlobalShortcut *GlobalShortcutContext::getShortcutByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const
+GlobalShortcut *GlobalShortcutContext::getShortcutByKey(const QKeySequence &key, int matchType) const
 {
     if (key.isEmpty()) {
         return nullptr;
@@ -65,7 +65,7 @@ GlobalShortcut *GlobalShortcutContext::getShortcutByKey(const QKeySequence &key,
         const auto keys = sc->keys();
         for (const QKeySequence &other : keys) {
             QKeySequence otherMangled = mangleKey(other);
-            switch (type) {
+            switch (static_cast<KGlobalAccel::MatchType>(matchType)) {
             case KGlobalAccel::MatchType::Equal:
                 if (otherMangled == keyMangled) {
                     return sc;

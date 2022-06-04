@@ -93,7 +93,7 @@ public:
      *
      * @see getShortcutsByKey(int key)
      */
-    QList<GlobalShortcut *> getShortcutsByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const;
+    QList<GlobalShortcut *> getShortcutsByKey(const QKeySequence &key, int matchType) const;
 
     /**
      * Checks if @p shortcut is available for @p component.
