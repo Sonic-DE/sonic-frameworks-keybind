@@ -173,12 +173,12 @@ GlobalShortcut *GlobalShortcutsRegistry::getShortcutByKey(const QKeySequence &ke
     return nullptr;
 }
 
-QList<GlobalShortcut *> GlobalShortcutsRegistry::getShortcutsByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const
+QList<GlobalShortcut *> GlobalShortcutsRegistry::getShortcutsByKey(const QKeySequence &key, int matchType) const
 {
     QList<GlobalShortcut *> rc;
 
     for (KdeDGlobalAccel::Component *component : std::as_const(_components)) {
-        rc = component->getShortcutsByKey(key, type);
+        rc = component->getShortcutsByKey(key, matchType);
         if (!rc.isEmpty()) {
             return rc;
         }

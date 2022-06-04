@@ -588,7 +588,7 @@ QList<KGlobalShortcutInfo> KGlobalAccel::getGlobalShortcutsByKey(const QKeySeque
 
 QList<KGlobalShortcutInfo> KGlobalAccel::globalShortcutsByKey(const QKeySequence &seq, MatchType type)
 {
-    return self()->d->iface()->globalShortcutsByKey(seq, type);
+    return self()->d->iface()->globalShortcutsByKey(seq, static_cast<int>(type));
 }
 
 bool KGlobalAccel::isGlobalShortcutAvailable(const QKeySequence &seq, const QString &comp)

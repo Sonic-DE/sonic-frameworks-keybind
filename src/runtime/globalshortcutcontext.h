@@ -53,7 +53,7 @@ public:
     KdeDGlobalAccel::Component const *component() const;
 
     //! Get shortcut for @p key or nullptr
-    GlobalShortcut *getShortcutByKey(const QKeySequence &key, KGlobalAccel::MatchType type) const;
+    GlobalShortcut *getShortcutByKey(const QKeySequence &key, int matchType) const;
 
     //! Remove @p shortcut from the context. The shortcut is not deleted.
     GlobalShortcut *takeShortcut(GlobalShortcut *shortcut);
