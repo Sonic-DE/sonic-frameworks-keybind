@@ -334,7 +334,7 @@ void GlobalShortcutsRegistry::loadSettings()
         // Create the component
         KdeDGlobalAccel::Component *component = nullptr;
         if (groupName.endsWith(QLatin1String(".desktop"))) {
-            component = new KdeDGlobalAccel::KServiceActionComponent(groupName, friendlyName, this);
+            component = new KdeDGlobalAccel::KServiceActionComponent(groupName, this);
         } else {
             component = new KdeDGlobalAccel::Component(groupName, friendlyName, this);
         }
@@ -380,7 +380,7 @@ void GlobalShortcutsRegistry::loadSettings()
                 continue;
             }
 
-            KdeDGlobalAccel::KServiceActionComponent *component = new KdeDGlobalAccel::KServiceActionComponent(desktopFile, f.readName(), this);
+            KdeDGlobalAccel::KServiceActionComponent *component = new KdeDGlobalAccel::KServiceActionComponent(desktopFile, this);
             component->activateGlobalShortcutContext(QStringLiteral("default"));
             component->loadFromService();
         }
