@@ -24,7 +24,10 @@
 #endif
 #endif
 
-static QList<QKeySequence> keysFromString(const QString &str)
+namespace KdeDGlobalAccel
+{
+
+QList<QKeySequence> Component::keysFromString(const QString &str)
 {
     QList<QKeySequence> ret;
     if (str == QLatin1String("none")) {
@@ -40,7 +43,7 @@ static QList<QKeySequence> keysFromString(const QString &str)
     return ret;
 }
 
-static QString stringFromKeys(const QList<QKeySequence> &keys)
+QString Component::stringFromKeys(const QList<QKeySequence> &keys)
 {
     if (keys.isEmpty()) {
         return QStringLiteral("none");
@@ -54,8 +57,6 @@ static QString stringFromKeys(const QList<QKeySequence> &keys)
     return ret;
 }
 
-namespace KdeDGlobalAccel
-{
 Component::Component(const QString &uniqueName, const QString &friendlyName, GlobalShortcutsRegistry *registry)
     : _uniqueName(uniqueName)
     , _friendlyName(friendlyName)
