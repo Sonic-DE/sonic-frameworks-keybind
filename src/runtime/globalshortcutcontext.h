@@ -17,6 +17,7 @@
 namespace KdeDGlobalAccel
 {
 class Component;
+class KServiceActionComponent;
 }
 
 class GlobalShortcut;
@@ -64,6 +65,7 @@ public:
 
 private:
     friend class KdeDGlobalAccel::Component;
+    friend class KdeDGlobalAccel::KServiceActionComponent;
 
     //! The unique name for this context
     QString _uniqueName;
