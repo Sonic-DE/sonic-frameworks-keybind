@@ -530,18 +530,22 @@ bool GlobalShortcutsRegistry::unregisterKey(const QKeySequence &key, GlobalShort
     return true;
 }
 
-void GlobalShortcutsRegistry::writeSettings() const
+void GlobalShortcutsRegistry::writeSettings()
 {
-    const auto &lst = GlobalShortcutsRegistry::self()->allMainComponents();
-    for (const KdeDGlobalAccel::Component *component : lst) {
+    std::vector<KdeDGlobalAccel::Component *> toDelete;
+    for (KdeDGlobalAccel::Component *component : m_components) {
         KConfigGroup configGroup(&_config, component->uniqueName());
         if (component->allShortcuts().isEmpty()) {
             configGroup.deleteGroup();
-            delete component;
+            toDelete.push_back(component);
         } else {
             component->writeSettings(configGroup);
         }
     }
+
+    // Component's destructor will also remove it from m_components and
+    // invalidate iterators, do this after the above for loop
+    qDeleteAll(toDelete);
 
     _config.sync();
 }

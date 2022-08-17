@@ -119,7 +119,7 @@ public Q_SLOTS:
 
     void loadSettings();
 
-    void writeSettings() const;
+    void writeSettings();
 
     // Grab the keys
     void grabKeys();
