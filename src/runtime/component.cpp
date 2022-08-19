@@ -32,7 +32,7 @@ static QList<QKeySequence> keysFromString(const QString &str)
     }
     const QStringList strList = str.split('\t');
     for (const QString &s : strList) {
-        QKeySequence key = QKeySequence(s);
+        QKeySequence key = QKeySequence::fromString(s);
         if (!key.isEmpty()) { // sanity check just in case
             ret.append(key);
         }
