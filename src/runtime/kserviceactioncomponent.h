@@ -10,7 +10,7 @@
 
 #include "component.h"
 
-#include <KDesktopFile>
+#include <KService>
 
 #include <memory>
 
@@ -34,11 +34,14 @@ public:
     bool cleanUp() override;
 
 private:
-    void runProcess(const KConfigGroup &group, const QString &token);
+    void runService(const QString &token);
+    void runServiceAction(const KServiceAction &action, const QString &token);
+    void startDetachedWithToken(const QString &program, const QStringList &args, const QString &token);
+    bool runWithKLauncher(const QString &command, QStringList &args);
 
     QString m_serviceStorageId;
-    std::unique_ptr<KDesktopFile> m_desktopFile;
     bool m_isInApplicationsDir = false;
+    KService::Ptr m_service;
 };
 
 #endif /* #ifndef COMPONENT_H */

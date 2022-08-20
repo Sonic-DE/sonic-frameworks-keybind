@@ -12,6 +12,7 @@
 #include <QDBusConnectionInterface>
 #include <QFileInfo>
 #include <QProcess>
+#include <QStandardPaths>
 
 #include <KShell>
 #include <KWindowSystem>
@@ -37,16 +38,32 @@ KServiceActionComponent::KServiceActionComponent(const QString &serviceStorageId
     }
 
     if (filePath.isEmpty()) {
-        qCWarning(KGLOBALACCELD) << "No desktop file found for service " << serviceStorageId;
+        qWarning() << "No desktop file found for service " << serviceStorageId;
     }
-    m_desktopFile.reset(new KDesktopFile(filePath));
+
+    m_service = new KService(filePath);
 }
 
 KServiceActionComponent::~KServiceActionComponent() = default;
 
-void KServiceActionComponent::runProcess(const KConfigGroup &group, const QString &token)
+void KServiceActionComponent::startDetachedWithToken(const QString &program, const QStringList &args, const QString &token)
 {
-    QStringList args = KShell::splitArgs(group.readEntry(QStringLiteral("Exec"), QString()));
+    QProcess p;
+    p.setProgram(program);
+    p.setArguments(args);
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    if (!token.isEmpty()) {
+        env.insert(QStringLiteral("XDG_ACTIVATION_TOKEN"), token);
+    }
+    p.setProcessEnvironment(env);
+    if (!p.startDetached()) {
+        qCWarning(KGLOBALACCELD) << "Failed to start" << program;
+    }
+}
+
+void KServiceActionComponent::runService(const QString &token)
+{
+    QStringList args = KShell::splitArgs(m_service->exec());
     if (args.isEmpty()) {
         return;
     }
@@ -57,32 +74,65 @@ void KServiceActionComponent::runProcess(const KConfigGroup &group, const QStrin
 
     const QString command = args.takeFirst();
 
-    auto startDetachedWithToken = [token](const QString &program, const QStringList &args) {
-        QProcess p;
-        p.setProgram(program);
-        p.setArguments(args);
-        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-        if (!token.isEmpty()) {
-            env.insert(QStringLiteral("XDG_ACTIVATION_TOKEN"), token);
-        }
-        p.setProcessEnvironment(env);
-        if (!p.startDetached()) {
-            qCWarning(KGLOBALACCELD) << "Failed to start" << program;
-        }
-    };
-
     const auto kstart = QStandardPaths::findExecutable(QStringLiteral("kstart5"));
     if (!kstart.isEmpty()) {
-        if (group.name() == QLatin1String("Desktop Entry") && m_isInApplicationsDir) {
-            startDetachedWithToken(kstart, {QStringLiteral("--application"), QFileInfo(m_desktopFile->fileName()).completeBaseName()});
+        if (m_isInApplicationsDir) {
+            startDetachedWithToken(kstart, {QStringLiteral("--application"), m_service->desktopEntryName()}, token);
         } else {
             args.prepend(command);
             args.prepend(QStringLiteral("--"));
-            startDetachedWithToken(kstart, args);
+            startDetachedWithToken(kstart, args, token);
         }
         return;
     }
 
+    if (runWithKLauncher(command, args)) {
+        return;
+    }
+
+    const QString cmdExec = QStandardPaths::findExecutable(command);
+    if (cmdExec.isEmpty()) {
+        qCWarning(KGLOBALACCELD) << "Could not find executable in PATH" << command;
+        return;
+    }
+    startDetachedWithToken(cmdExec, args, token);
+}
+
+void KServiceActionComponent::runServiceAction(const KServiceAction &action, const QString &token)
+{
+    QStringList args = KShell::splitArgs(action.exec());
+    if (args.isEmpty()) {
+        return;
+    }
+    // sometimes entries have an %u for command line parameters
+    if (args.last().contains(QLatin1Char('%'))) {
+        args.pop_back();
+    }
+
+    const QString command = args.takeFirst();
+
+    const auto kstart = QStandardPaths::findExecutable(QStringLiteral("kstart5"));
+    if (!kstart.isEmpty()) {
+        args.prepend(command);
+        args.prepend(QStringLiteral("--"));
+        startDetachedWithToken(kstart, args, token);
+        return;
+    }
+
+    if (runWithKLauncher(command, args)) {
+        return;
+    }
+
+    const QString cmdExec = QStandardPaths::findExecutable(command);
+    if (cmdExec.isEmpty()) {
+        qCWarning(KGLOBALACCELD) << "Could not find executable in PATH" << command;
+        return;
+    }
+    startDetachedWithToken(cmdExec, args, token);
+}
+
+bool KServiceActionComponent::runWithKLauncher(const QString &command, QStringList &args)
+{
     QDBusConnectionInterface *dbusDaemon = QDBusConnection::sessionBus().interface();
     const bool klauncherAvailable = dbusDaemon->isServiceRegistered(QStringLiteral("org.kde.klauncher5"));
     if (klauncherAvailable) {
@@ -93,15 +143,9 @@ void KServiceActionComponent::runProcess(const KConfigGroup &group, const QStrin
         msg << command << args;
 
         QDBusConnection::sessionBus().asyncCall(msg);
-        return;
+        return true;
     }
-
-    const QString cmdExec = QStandardPaths::findExecutable(command);
-    if (cmdExec.isEmpty()) {
-        qCWarning(KGLOBALACCELD) << "Could not find executable in PATH" << command;
-        return;
-    }
-    startDetachedWithToken(cmdExec, args);
+    return false;
 }
 
 void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &shortcut)
@@ -110,7 +154,7 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
 
     auto launchWithToken = [this, shortcut](const QString &token) {
         // DBusActivatatable spec as per https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#dbus
-        if (m_desktopFile->desktopGroup().readEntry("DBusActivatable", false)) {
+        if (m_service->property(QStringLiteral("DBusActivatable"), QVariant::Bool).toBool()) {
             QString method;
             const QString serviceName = m_serviceStorageId.chopped(strlen(".desktop"));
             const QString objectPath = QStringLiteral("/%1").arg(serviceName).replace(QLatin1Char('.'), QLatin1Char('/'));
@@ -134,13 +178,13 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
 
         // we can't use KRun there as it depends from KIO and would create a circular dep
         if (shortcut.uniqueName() == QLatin1String("_launch")) {
-            runProcess(m_desktopFile->desktopGroup(), token);
+            runService(token);
             return;
         }
-        const auto lstActions = m_desktopFile->readActions();
-        for (const QString &action : lstActions) {
-            if (action == shortcut.uniqueName()) {
-                runProcess(m_desktopFile->actionGroup(action), token);
+        const auto lstActions = m_service->actions();
+        for (const KServiceAction &action : lstActions) {
+            if (action.name() == shortcut.uniqueName()) {
+                runServiceAction(action, token);
                 return;
             }
         }
@@ -162,16 +206,19 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
 
 void KServiceActionComponent::loadFromService()
 {
-    auto registerGroupShortcut = [this](const QString &name, const KConfigGroup &group) {
-        const QString shortcutString = group.readEntry(QStringLiteral("X-KDE-Shortcuts"), QString()).replace(QLatin1Char(','), QLatin1Char('\t'));
-        GlobalShortcut *shortcut = registerShortcut(name, group.readEntry(QStringLiteral("Name"), QString()), shortcutString, shortcutString);
-        shortcut->setIsPresent(true);
-    };
+    if (!m_service) {
+        return;
+    }
 
-    registerGroupShortcut(QStringLiteral("_launch"), m_desktopFile->desktopGroup());
-    const auto lstActions = m_desktopFile->readActions();
-    for (const QString &action : lstActions) {
-        registerGroupShortcut(action, m_desktopFile->actionGroup(action));
+    const QString shortcutString = m_service->property(QStringLiteral("X-KDE-Shortcuts")).toStringList().join(QLatin1Char('\t'));
+    GlobalShortcut *shortcut = registerShortcut(QStringLiteral("_launch"), m_service->name(), shortcutString, shortcutString);
+    shortcut->setIsPresent(true);
+
+    const auto lstActions = m_service->actions();
+    for (const KServiceAction &action : lstActions) {
+        const QString shortcutString = action.property(QStringLiteral("X-KDE-Shortcuts"), QVariant::StringList).toStringList().join(QLatin1Char('\t'));
+        GlobalShortcut *shortcut = registerShortcut(action.name(), action.text(), shortcutString, shortcutString);
+        shortcut->setIsPresent(true);
     }
 }
 
