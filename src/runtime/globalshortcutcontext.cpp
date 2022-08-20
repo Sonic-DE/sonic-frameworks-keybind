@@ -11,7 +11,9 @@
 #include "kglobalaccel.h"
 #include "sequencehelpers_p.h"
 
-GlobalShortcutContext::GlobalShortcutContext(const QString &uniqueName, const QString &friendlyName, KdeDGlobalAccel::Component *component)
+using namespace KdeDGlobalAccel;
+
+GlobalShortcutContext::GlobalShortcutContext(const QString &uniqueName, const QString &friendlyName, Component *component)
 
     : _uniqueName(uniqueName)
     , _friendlyName(friendlyName)
@@ -39,12 +41,12 @@ QList<KGlobalShortcutInfo> GlobalShortcutContext::allShortcutInfos() const
     return rc;
 }
 
-KdeDGlobalAccel::Component const *GlobalShortcutContext::component() const
+Component const *GlobalShortcutContext::component() const
 {
     return _component;
 }
 
-KdeDGlobalAccel::Component *GlobalShortcutContext::component()
+Component *GlobalShortcutContext::component()
 {
     return _component;
 }
