@@ -16,6 +16,12 @@
 #include <KShell>
 #include <KWindowSystem>
 
+#include "config-kglobalaccel.h"
+#if HAVE_X11
+#include <KStartupInfo>
+#include <QX11Info>
+#endif
+
 KServiceActionComponent::KServiceActionComponent(const QString &serviceStorageId, const QString &friendlyName)
     : Component(serviceStorageId, friendlyName)
     , m_serviceStorageId(serviceStorageId)
@@ -63,7 +69,11 @@ void KServiceActionComponent::runProcess(const KConfigGroup &group, const QStrin
         p.setArguments(args);
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
         if (!token.isEmpty()) {
-            env.insert(QStringLiteral("XDG_ACTIVATION_TOKEN"), token);
+            if (KWindowSystem::isPlatformWayland()) {
+                env.insert(QStringLiteral("XDG_ACTIVATION_TOKEN"), token);
+            } else {
+                env.insert(QStringLiteral("DESKTOP_STARTUP_ID"), token);
+            }
         }
         p.setProcessEnvironment(env);
         if (!p.startDetached()) {
@@ -123,7 +133,11 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
                 message << shortcut.uniqueName() << QVariantList();
             }
             if (!token.isEmpty()) {
-                message << QVariantMap{{QStringLiteral("activation-token"), token}};
+                if (KWindowSystem::isPlatformWayland()) {
+                    message << QVariantMap{{QStringLiteral("activation-token"), token}};
+                } else {
+                    message << QVariantMap{{QStringLiteral("desktop-startup-id"), token}};
+                }
             } else {
                 message << QVariantMap();
             }
@@ -156,7 +170,9 @@ void KServiceActionComponent::emitGlobalShortcutPressed(const GlobalShortcut &sh
             }
         });
     } else {
-        launchWithToken({});
+#if HAVE_X11
+        launchWithToken(QString::fromUtf8(KStartupInfo::createNewStartupIdForTimestamp(QX11Info::appTime())));
+#endif
     }
 }
 
