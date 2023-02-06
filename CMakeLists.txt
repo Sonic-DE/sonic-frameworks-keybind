@@ -27,7 +27,11 @@ include(ECMQtDeclareLoggingCategory)
 include(ECMPoQmTools)
 include(ECMDeprecationSettings)
 
+if (TRUE) # TODO: port and remove remaining code in v5-time deprecated parts, then return to using 0
+set(EXCLUDE_DEPRECATED_BEFORE_AND_AT 5.99.0 CACHE STRING "Control the range of deprecated API excluded from the build [default=5.99.0].")
+else() # normal
 set(EXCLUDE_DEPRECATED_BEFORE_AND_AT 0 CACHE STRING "Control the range of deprecated API excluded from the build [default=0].")
+endif()
 
 option(BUILD_RUNTIME "Build the kglobalacceld runtime" ON)
 add_feature_info(BUILD_RUNTIME ${BUILD_RUNTIME} "The kglobalacceld runtime")
