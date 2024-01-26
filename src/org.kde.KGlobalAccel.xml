@@ -67,7 +67,7 @@
     <method name="getGlobalShortcutsByKey">
       <arg type="a(ssssssaiai)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;KGlobalShortcutInfo&gt;"/>
-      <arg name="key" type="i" direction="in"/>
+      <arg name="key" type="(i)" direction="in"/>
     </method>
     <method name="isGlobalShortcutAvailable">
       <arg type="b" direction="out"/>
