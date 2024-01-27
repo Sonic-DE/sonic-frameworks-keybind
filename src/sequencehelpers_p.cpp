@@ -92,6 +92,8 @@ QKeySequence mangleKey(const QKeySequence &key)
         int keyMod = key[i].toCombined() & Qt::KeyboardModifierMask;
         if ((keyMod & Qt::SHIFT) && (keySym == Qt::Key_Backtab || keySym == Qt::Key_Tab)) {
             k[i] = keyMod | Qt::Key_Tab;
+        } else if (keySym == Qt::Key_SysReq) {
+            k[i] = keyMod | Qt::Key_Print | Qt::AltModifier;
         } else {
             k[i] = key[i].toCombined();
         }
