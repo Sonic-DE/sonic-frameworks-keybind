@@ -45,18 +45,18 @@ QDBusArgument &operator<<(QDBusArgument &argument, const KGlobalShortcutInfo &sh
              << shortcut.contextUniqueName()
              << shortcut.contextFriendlyName();
     /* clang-format on */
-    argument.beginArray(qMetaTypeId<int>());
+    argument.beginArray(qMetaTypeId<QList<int>>());
 
     const QList<QKeySequence> keys = shortcut.keys();
     for (const QKeySequence &key : keys) {
-        argument << key[0].toCombined();
+        argument << QList<int>{key[0].toCombined(), key[1].toCombined(), key[2].toCombined(), key[3].toCombined()};
     }
     argument.endArray();
-    argument.beginArray(qMetaTypeId<int>());
+    argument.beginArray(qMetaTypeId<QList<int>>());
 
     const QList<QKeySequence> defaultKeys = shortcut.defaultKeys();
     for (const QKeySequence &key : defaultKeys) {
-        argument << key[0].toCombined();
+        argument << QList<int>{key[0].toCombined(), key[1].toCombined(), key[2].toCombined(), key[3].toCombined()};
     }
     argument.endArray();
     argument.endStructure();
@@ -77,16 +77,16 @@ const QDBusArgument &operator>>(const QDBusArgument &argument, KGlobalShortcutIn
 
     argument.beginArray();
     while (!argument.atEnd()) {
-        int key;
+        QList<int> key;
         argument >> key;
-        shortcut.d->keys.append(QKeySequence(key));
+        shortcut.d->keys.append(QKeySequence(key[0], key[1], key[2], key[3]));
     }
     argument.endArray();
     argument.beginArray();
     while (!argument.atEnd()) {
-        int key;
+        QList<int> key;
         argument >> key;
-        shortcut.d->defaultKeys.append(QKeySequence(key));
+        shortcut.d->defaultKeys.append(QKeySequence(key[0], key[1], key[2], key[3]));
     }
     argument.endArray();
     argument.endStructure();

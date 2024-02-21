@@ -65,7 +65,7 @@
       <arg name="context" type="s" direction="in"/>
     </method>
     <method name="getGlobalShortcutsByKey">
-      <arg type="a(ssssssaiai)" direction="out"/>
+      <arg type="a(ssssssaaiaai)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;KGlobalShortcutInfo&gt;"/>
       <arg name="key" type="i" direction="in"/>
     </method>
@@ -117,7 +117,7 @@
       <annotation name="org.qtproject.QtDBus.QtTypeName.In1" value="QList&lt;QKeySequence&gt;"/>
     </method>
     <method name="globalShortcutsByKey">
-      <arg type="a(ssssssaiai)" direction="out"/>
+      <arg type="a(ssssssaaiaai)" direction="out"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.Out0" value="QList&lt;KGlobalShortcutInfo&gt;"/>
       <arg name="key" type="ai" direction="in"/>
       <annotation name="org.qtproject.QtDBus.QtTypeName.In0" value="QKeySequence"/>
